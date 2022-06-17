@@ -1,42 +1,84 @@
 using System;
+using System.Collections.Generic;
+using Cysharp.Threading.Tasks;
 using UnityEngine;
+using VContainer;
 
 namespace Client
 {
-    public class AutomaticPainter : IAutomaticPainter
+    public class AutomaticPainter : MonoBehaviour, IAutomaticPainter
     {
-        private readonly IConfiguration configuration;
+        private IConfiguration configuration;
 
-        public AutomaticPainter(IConfiguration configuration)
+        public event Action OnPaint;
+
+        [Inject]
+        public void Construct (IConfiguration configuration)
         {
             this.configuration = configuration;
         }
 
-        public void Paint(ModelView model)
+        public void Paint(ModelView model, Action<ModelAnalyzeProgress> onProgress, Action onComplete)
+        {
+            UniTask.Void(() => PaintAsync(model, onProgress, onComplete));
+        }
+
+        private async UniTaskVoid PaintAsync(ModelView model, Action<ModelAnalyzeProgress> onProgress, Action onComplete)
+        {
+            if (model == null)
+                await UniTask.CompletedTask;
+
+            var mesh = model.Mesh;
+            
+            var (min, max) = await FindMinMaxYAsync(mesh, onProgress);
+
+            UniTask.Void(() => PaintModel(model, min, max, onProgress, onComplete));
+        }
+
+        private async UniTaskVoid PaintModel(ModelView model, float min, float max,
+            Action<ModelAnalyzeProgress> onProgress, Action onComplete)
         {
             var mesh = model.Mesh;
-
-            model.Colors = new Color[mesh.vertices.Length];
-
-            var (min, max) = FindMinMaxY(mesh);
-
-            Debug.Log($"Min : {min}");
-            Debug.Log($"Max : {max}");
             
+            model.Vertices = new Dictionary<int, Vertex>();
+            model.Colors = new Color[mesh.vertices.Length];
+            
+            model.HighestPoint = max;
+            model.LowestPoint = min;
+                
+            var progress = new ModelAnalyzeProgress(0, ModelAnalyzeState.Paint);
+
             for (var index = 0; index < mesh.vertices.Length; index++)
             {
                 var vert = mesh.vertices[index];
                 var height = Mathf.InverseLerp(min,max,vert.z);
-                model.Colors[index] = configuration.Gradient.Evaluate(height);
+                var color = configuration.Gradient.Evaluate(height);
+                
+                model.Colors[index] = color;
+                model.Vertices.Add(index, new Vertex(vert.z));
+
+                if (index % configuration.ProgressThreshold == 0)
+                {
+                    progress.Percent = (int)((index / (float)mesh.vertices.Length) * 100);
+                    onProgress?.Invoke(progress);
+                    await UniTask.Yield();
+                }
             }
             
-            mesh.colors = model.Colors;
+            mesh.SetColors(model.Colors);
+            
+            onComplete?.Invoke();
+            OnPaint?.Invoke();
+
+            await UniTask.Yield();
         }
 
-        private static Tuple<float, float> FindMinMaxY(Mesh mesh)
+        private async UniTask<Tuple<float, float>> FindMinMaxYAsync(Mesh mesh, Action<ModelAnalyzeProgress> onProgress)
         {
             var min = float.MaxValue;
             var max = float.MinValue;
+
+            var progress = new ModelAnalyzeProgress(0, ModelAnalyzeState.Analyze);
             
             for (var index = 0; index < mesh.vertices.Length; index++)
             {
@@ -50,6 +92,13 @@ namespace Client
                 if (vert.z < min)
                 {
                     min = vert.z;
+                }
+                
+                if (index % configuration.ProgressThreshold == 0)
+                {
+                    progress.Percent = (int)((index / (float)mesh.vertices.Length) * 100);
+                    onProgress?.Invoke(progress);
+                    await UniTask.Yield();
                 }
             }
 

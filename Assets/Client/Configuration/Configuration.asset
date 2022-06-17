@@ -1,0 +1,54 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eea088a0d6874b3981be710d6a2295c0, type: 3}
+  m_Name: Configuration
+  m_EditorClassIdentifier: 
+  defaultRotation: {x: 90, y: 0, z: 0}
+  cameraSpeed: 5
+  cameraMaxHeight: 40
+  cameraMinHeight: 40
+  cameraSmooth: 0.2
+  cameraDistance: 450.55
+  cameraMinDistance: 250
+  cameraMaxDistance: 500
+  heightMapMaterial: {fileID: 2100000, guid: 96fb6a12af180eb43a991a99c61ea983, type: 2}
+  mapGradient:
+    serializedVersion: 2
+    key0: {r: 0.08960724, g: 0, b: 1, a: 1}
+    key1: {r: 0.17558631, g: 0.9995334, b: 0, a: 1}
+    key2: {r: 1, g: 0.993, b: 0, a: 0}
+    key3: {r: 1, g: 0, b: 0, a: 0}
+    key4: {r: 1, g: 0, b: 0, a: 0}
+    key5: {r: 1, g: 0, b: 0, a: 0}
+    key6: {r: 0, g: 0, b: 0, a: 0}
+    key7: {r: 0, g: 0, b: 0, a: 0}
+    ctime0: 4241
+    ctime1: 22552
+    ctime2: 38936
+    ctime3: 65535
+    ctime4: 65535
+    ctime5: 65535
+    ctime6: 0
+    ctime7: 0
+    atime0: 0
+    atime1: 65535
+    atime2: 0
+    atime3: 0
+    atime4: 0
+    atime5: 0
+    atime6: 0
+    atime7: 0
+    m_Mode: 0
+    m_NumColorKeys: 4
+    m_NumAlphaKeys: 2
+  modifyVertexSpeed: 2
+  progressThreshold: 1000

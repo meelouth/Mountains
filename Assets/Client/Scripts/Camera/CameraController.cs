@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 using VContainer;
 
 namespace Client
@@ -18,23 +19,49 @@ namespace Client
         private Vector3 smoothVelocity;
         private float rotationX;
         private float rotationY;
+
+        private float cameraDistance;
         
         private Transform target;
+
+        private bool enabled;
 
         [Inject]
         private void Construct(IConfiguration configuration)
         {
             this.configuration = configuration;
         }
-        
+
+        private void Start()
+        {
+            SetDistance(configuration.CameraMaxDistance);
+        }
+
         public void SetTarget(Transform newTarget)
         {
             target = newTarget;
+            Rotate();
+        }
+
+        public void SetDistance(float value)
+        {
+            var distance = Mathf.Lerp(configuration.CameraMaxDistance, configuration.CameraMinDistance, value);
+            cameraDistance = distance;
         }
 
         public void RemoveTarget()
         {
             target = null;
+        }
+        
+        public void Enable()
+        {
+            enabled = true;
+        }
+
+        public void Disable()
+        {
+            enabled = false;
         }
         
         private void Update()
@@ -44,7 +71,11 @@ namespace Client
                 return;
             }
             
-            Drag();
+            if (enabled)
+            {
+                Drag();
+            }
+            
             Rotate();
         }
 
@@ -60,7 +91,7 @@ namespace Client
 
             cameraTransform.localEulerAngles = currentRotation;
 
-            cameraTransform.position = target.position - cameraTransform.forward * configuration.CameraDistance;
+            cameraTransform.position = target.position - cameraTransform.forward * cameraDistance;
         }
         
         private void Drag()

@@ -4,54 +4,108 @@ using VContainer;
 
 namespace Client
 {
-    public class Painter : MonoBehaviour, IPainter
+    public class Painter : IPainter
     {
         private ICameraController cameraController;
         private IConfiguration configuration;
+        private IUserInputController userInputController;
+
+        private const int Positive = 1;
+        private const int Negative = -1;
 
         [Inject]
-        public void Construct(ICameraController cameraController, IConfiguration configuration)
+        public void Construct(ICameraController cameraController, IConfiguration configuration, IUserInputController userInputController)
         {
             this.cameraController = cameraController;
             this.configuration = configuration;
+            this.userInputController = userInputController;
         }
 
-        private void Update()
+        public void Enable()
         {
-            if (Input.GetMouseButton(0))
+            userInputController.OnLeftMouseHold += OnLeftMouseHold;
+            userInputController.OnRightMouseHold += OnRightMouseHold;
+        }
+
+        public void Disable()
+        {
+            userInputController.OnLeftMouseHold -= OnLeftMouseHold;
+            userInputController.OnRightMouseHold -= OnRightMouseHold;
+        }
+
+        private void OnLeftMouseHold()
+        {
+            Extrude();
+        }
+
+        private void OnRightMouseHold()
+        {
+            Dent();
+        }
+
+        private void Extrude()
+        {
+            Manipulate(Positive);
+        }
+
+        private void Dent()
+        {
+            Manipulate(Negative);
+        }
+
+        private void Manipulate(int direction)
+        {
+            var ray = cameraController.Camera.ScreenPointToRay(Input.mousePosition);
+
+            if (Physics.Raycast(ray, out var hit))
             {
-                var ray = cameraController.Camera.ScreenPointToRay(Input.mousePosition);
-
-                if (Physics.Raycast(ray, out var hit))
+                if (hit.transform.parent.TryGetComponent<ModelView>(out var model))
                 {
-                    if (hit.transform.parent.TryGetComponent<ModelView>(out var model))
+                    var triangleIndex = hit.triangleIndex;
+
+                    var vertices = GetVerticesByTriangle(model.Mesh, triangleIndex);
+
+                    foreach (var vertex in vertices)
                     {
-                        var triangleIndex = hit.triangleIndex;
-                        
-                        var triangle1 = model.Mesh.triangles[triangleIndex * 3 + 0];
-                        var triangle2 = model.Mesh.triangles[triangleIndex * 3 + 1];
-                        var triangle3 = model.Mesh.triangles[triangleIndex * 3 + 2];
+                        var vertexData = model.Vertices[vertex];
 
-                        var mesh = model.Mesh;
+                        ModifyVertex(model, vertexData, direction);
                         
-                        model.Colors[triangle1] = Color.Lerp(model.Colors[triangle1],  
-                            configuration.Gradient.Evaluate(GetTimeOfColor(configuration.Gradient,model.Colors[triangle1])) , Time.deltaTime * 5);
-                        model.Colors[triangle2] = Color.Lerp(model.Colors[triangle2], 
-                            configuration.Gradient.Evaluate(GetTimeOfColor(configuration.Gradient,model.Colors[triangle2])) , Time.deltaTime * 5);
-                        model.Colors[triangle3] =Color.Lerp(model.Colors[triangle3], 
-                            configuration.Gradient.Evaluate(GetTimeOfColor(configuration.Gradient,model.Colors[triangle3])) , Time.deltaTime * 5);
+                        var height = Mathf.InverseLerp(model.LowestPoint,model.HighestPoint,vertexData.Height);
+                        var nextColor = configuration.Gradient.Evaluate(height);
+                        model.Colors[vertex] = nextColor;
 
-                        mesh.colors = model.Colors;
+                        model.Mesh.colors = model.Colors;
                     }
                 }
             }
         }
 
-        private float GetTimeOfColor(Gradient gradient, Color color)
+        private void ModifyVertex(ModelView model, Vertex vertex, int direction)
         {
-            var gradientKey = gradient.colorKeys.FirstOrDefault(x => x.color == color);
+            var shift = GetShift(model, direction);
 
-            return gradientKey.time;
+            vertex.Height = Mathf.Lerp(vertex.Height, shift, configuration.ModifyVertexSpeed * Time.deltaTime);
+        }
+
+        private static float GetShift(ModelView model, int direction)
+        {
+            return direction > 0 ? model.HighestPoint : model.LowestPoint;
+        }
+
+        private static int[] GetVerticesByTriangle(Mesh mesh, int triangleIndex)
+        {
+            var vertices = new int[3];
+            
+            var vertex1 = mesh.triangles[triangleIndex * 3 + 0];
+            var vertex2 = mesh.triangles[triangleIndex * 3 + 1];
+            var vertex3 = mesh.triangles[triangleIndex * 3 + 2];
+
+            vertices[0] = vertex1;
+            vertices[1] = vertex2;
+            vertices[2] = vertex3;
+
+            return vertices;
         }
     }
 }

@@ -2,9 +2,10 @@
 
 namespace Client
 {
-    public interface ICameraController
+    public interface ICameraController : ITool
     {
         Camera Camera { get; }
         void SetTarget(Transform newTarget);
+        void SetDistance(float value);
     }
 }

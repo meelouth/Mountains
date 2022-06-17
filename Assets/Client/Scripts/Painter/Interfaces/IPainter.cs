@@ -1,6 +1,6 @@
 ﻿namespace Client
 {
-    public interface IPainter
+    public interface IPainter : ITool
     {
         
     }

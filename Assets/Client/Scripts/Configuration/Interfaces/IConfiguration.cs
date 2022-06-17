@@ -9,8 +9,11 @@ namespace Client
         float CameraMaxHeight { get; }
         float CameraMinHeight { get; } 
         float CameraSmooth { get; }
-        float CameraDistance { get; }
+        float CameraMaxDistance { get; }
+        float CameraMinDistance { get; }
         Material HeightMapMaterial { get; }
         Gradient Gradient { get; }
+        float ModifyVertexSpeed { get; }
+        int ProgressThreshold { get; }
     }
 }
